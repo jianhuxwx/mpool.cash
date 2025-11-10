@@ -49,6 +49,8 @@ export class PriceChartComponent implements OnInit {
   formatNumber = formatNumber;
   chartInstance: any = undefined;
   currentTimespan = '';
+  coinName: string;
+  coinTicker: string;
 
   constructor(
     @Inject(LOCALE_ID) public locale: string,
@@ -64,6 +66,8 @@ export class PriceChartComponent implements OnInit {
   ) {
     this.radioGroupForm = this.formBuilder.group({ dateSpan: '1y' });
     this.radioGroupForm.controls.dateSpan.setValue('1y');
+    this.coinName = this.stateService.env.COIN_NAME || 'Bitcoin Cash';
+    this.coinTicker = this.stateService.env.COIN_TICKER || 'BCH';
   }
 
   ngOnInit(): void {
@@ -73,8 +77,8 @@ export class PriceChartComponent implements OnInit {
     } else if (this.widget) {
       this.miningWindowPreference = '1y';
     } else {
-      this.seoService.setTitle($localize`:@@price-chart.title:Bitcoin Price`);
-      this.seoService.setDescription($localize`:@@price-chart.description:See the Bitcoin price in USD visualized over time.`);
+      this.seoService.setTitle(`${this.coinName} Price`);
+      this.seoService.setDescription(`See the ${this.coinName} price in ${this.currency} visualized over time.`);
       this.miningWindowPreference = this.miningService.getDefaultTimespan('1m');
     }
     this.radioGroupForm = this.formBuilder.group({ dateSpan: this.miningWindowPreference });
@@ -227,7 +231,7 @@ export class PriceChartComponent implements OnInit {
           // legendHoverLink: false,
           zlevel: 0,
           yAxisIndex: 0,
-          name: 'BTC Price (' + this.currency + ')',
+          name: this.coinTicker + ' Price (' + this.currency + ')',
           data: data.priceData,
           type: 'line',
           smooth: 0.25,

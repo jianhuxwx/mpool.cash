@@ -127,6 +127,7 @@ export class TrackerComponent implements OnInit, OnDestroy {
   enterpriseInfo: any;
   enterpriseInfo$: Subscription;
   officialMempoolSpace = this.stateService.env.OFFICIAL_MEMPOOL_SPACE;
+  coinName = this.stateService.env.COIN_NAME || 'Bitcoin Cash';
 
   constructor(
     private route: ActivatedRoute,

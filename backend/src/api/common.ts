@@ -30,9 +30,14 @@ export class Common {
     '144c654344aa716d6f3abcc1ca90e5641e4e2a7f633bc09fe3baf64585819a49'
   : '6f0279e9ed041c3d710a9f57d0c02928416460c4b722ae3457a11eec381c526d';
   static _isLiquid = config.MEMPOOL.NETWORK === 'liquid' || config.MEMPOOL.NETWORK === 'liquidtestnet';
+  static _isBitcoinCash = ['bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK);
 
   static isLiquid(): boolean {
     return this._isLiquid;
+  }
+
+  static isBitcoinCash(): boolean {
+    return this._isBitcoinCash;
   }
 
   static median(numbers: number[]) {
@@ -81,6 +86,9 @@ export class Common {
   }
 
   static findRbfTransactions(added: MempoolTransactionExtended[], deleted: MempoolTransactionExtended[], forceScalable = false): { [txid: string]: { replaced: MempoolTransactionExtended[], replacedBy: TransactionExtended }} {
+    if (Common.isBitcoinCash()) {
+      return {};
+    }
     const matches: { [txid: string]: { replaced: MempoolTransactionExtended[], replacedBy: TransactionExtended }} = {};
 
     // For small N, a naive nested loop is extremely fast, but it doesn't scale
@@ -134,6 +142,9 @@ export class Common {
   }
 
   static findMinedRbfTransactions(minedTransactions: TransactionExtended[], spendMap: Map<string, MempoolTransactionExtended>): { [txid: string]: { replaced: MempoolTransactionExtended[], replacedBy: TransactionExtended }} {
+    if (Common.isBitcoinCash()) {
+      return {};
+    }
     const matches: { [txid: string]: { replaced: MempoolTransactionExtended[], replacedBy: TransactionExtended }} = {};
     for (const tx of minedTransactions) {
       const replaced: Set<MempoolTransactionExtended> = new Set();
@@ -205,6 +216,9 @@ export class Common {
    * For now, just pull out individual rules into versioned functions where necessary.
    */
   static isNonStandard(tx: TransactionExtended, height?: number): boolean {
+    if (Common.isBitcoinCash()) {
+      return false;
+    }
     // version
     if (this.isNonStandardVersion(tx, height)) {
       return true;
@@ -806,7 +820,7 @@ export class Common {
 
   static indexingEnabled(): boolean {
     return (
-      ['mainnet', 'testnet', 'signet', 'testnet4'].includes(config.MEMPOOL.NETWORK) &&
+      ['mainnet', 'testnet', 'signet', 'testnet4', 'bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK) &&
       config.DATABASE.ENABLED === true &&
       config.MEMPOOL.INDEXING_BLOCKS_AMOUNT !== 0
     );

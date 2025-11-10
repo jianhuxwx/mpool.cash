@@ -142,6 +142,14 @@ class Server {
         res.setHeader('Access-Control-Expose-Headers', 'X-Total-Count,X-Mempool-Auth');
         next();
       })
+      .use((req: Request, _res: Response, next: NextFunction) => {
+        if (req.url.startsWith('/api/') && !req.url.startsWith(config.MEMPOOL.API_URL_PREFIX)) {
+          req.url = config.MEMPOOL.API_URL_PREFIX + req.url.substring('/api/'.length);
+        } else if (req.url === '/api') {
+          req.url = config.MEMPOOL.API_URL_PREFIX.slice(0, -1);
+        }
+        next();
+      })
       .use(express.urlencoded({ extended: true }))
       .use(express.text({ type: ['text/plain', 'application/base64'] }))
       .use(express.json())

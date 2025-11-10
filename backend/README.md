@@ -106,6 +106,8 @@ In particular, make sure:
   - "esplora" if you're using [mempool/electrs](https://github.com/mempool/electrs)
   - "none" if you're not using any Electrum Server
 
+If you're connecting the backend to Bitcoin Cash, set `MEMPOOL.NETWORK` to `bitcoincash`, point the `ELECTRUM` section at your Fulcrum instance, and use the new `mempool-config.bch.sample.json` as a starting point. Fulcrum must be synced against your local Bitcoin Cash node for address indexing to work.
+
 ### 6. Run Mempool Backend
 
 Run the Mempool backend:

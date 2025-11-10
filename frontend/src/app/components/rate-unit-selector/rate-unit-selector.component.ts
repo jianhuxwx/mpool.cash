@@ -13,16 +13,20 @@ import { Subscription } from 'rxjs';
 export class RateUnitSelectorComponent implements OnInit, OnDestroy {
   rateUnitForm: UntypedFormGroup;
   rateUnitSub: Subscription;
-  units = [
-    { name: 'vb', label: 'sat/vB' },
-    { name: 'wu', label: 'sat/WU' },
-  ];
+  units: { name: string; label: string }[];
 
   constructor(
     private formBuilder: UntypedFormBuilder,
     private stateService: StateService,
     private storageService: StorageService,
-  ) { }
+  ) {
+    const primaryUnit = this.stateService.env.FEE_RATE_UNIT_MAIN || 'sat/vB';
+    const secondaryUnit = this.stateService.env.FEE_RATE_UNIT_SECONDARY;
+    this.units = [
+      { name: 'vb', label: primaryUnit },
+      ...(secondaryUnit ? [{ name: 'wu', label: secondaryUnit }] : []),
+    ];
+  }
 
   ngOnInit() {
     this.rateUnitForm = this.formBuilder.group({

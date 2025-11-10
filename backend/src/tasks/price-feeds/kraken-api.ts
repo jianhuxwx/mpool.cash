@@ -1,3 +1,4 @@
+import config from '../../config';
 import logger from '../../logger';
 import PricesRepository from '../../repositories/PricesRepository';
 import { query } from '../../utils/axios-query';
@@ -7,18 +8,29 @@ class KrakenApi implements PriceFeed {
   public name: string = 'Kraken';
   public currencies: string[] = ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'AUD', 'JPY'];
 
-  public url: string = 'https://api.kraken.com/0/public/Ticker?pair=XBT';
-  public urlHist: string = 'https://api.kraken.com/0/public/OHLC?interval={GRANULARITY}&pair=XBT';
+  public url: string;
+  public urlHist: string;
+  private baseAsset: 'XBT' | 'BCH';
 
   constructor() {
+    const isBitcoinCash = ['bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK);
+    this.baseAsset = isBitcoinCash ? 'BCH' : 'XBT';
+    if (isBitcoinCash) {
+      this.currencies = ['USD', 'EUR'];
+    }
+    this.url = `https://api.kraken.com/0/public/Ticker?pair=${this.baseAsset}`;
+    this.urlHist = `https://api.kraken.com/0/public/OHLC?interval={GRANULARITY}&pair=${this.baseAsset}`;
   }
 
   private getTicker(currency) {
-    let ticker = `XXBTZ${currency}`;
-    if (['CHF', 'AUD'].includes(currency)) {
-      ticker = `XBT${currency}`;
+    if (this.baseAsset === 'XBT') {
+      let ticker = `XXBTZ${currency}`;
+      if (['CHF', 'AUD'].includes(currency)) {
+        ticker = `XBT${currency}`;
+      }
+      return ticker;
     }
-    return ticker;
+    return `${this.baseAsset}${currency}`;
   }
 
   public async $fetchPrice(currency): Promise<number> {

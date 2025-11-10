@@ -1,12 +1,13 @@
+import config from '../../config';
 import { query } from '../../utils/axios-query';
 import priceUpdater, { PriceFeed, PriceHistory } from '../price-updater';
 
 class BitfinexApi implements PriceFeed {
   public name: string = 'Bitfinex';
-  public currencies: string[] = ['USD', 'EUR', 'GPB', 'JPY'];
-
-  public url: string = 'https://api.bitfinex.com/v1/pubticker/BTC';
-  public urlHist: string = 'https://api-pub.bitfinex.com/v2/candles/trade:{GRANULARITY}:tBTC{CURRENCY}/hist';
+  public currencies: string[] = ['USD', 'EUR', 'GBP', 'JPY'];
+  public url: string;
+  public urlHist: string;
+  private baseSymbol: 'BTC' | 'BCH';
 
   public async $fetchPrice(currency): Promise<number> {
     const response = await query(this.url + currency);
@@ -38,6 +39,16 @@ class BitfinexApi implements PriceFeed {
     }
 
     return priceHistory;
+  }
+
+  constructor() {
+    const isBitcoinCash = ['bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK);
+    this.baseSymbol = isBitcoinCash ? 'BCH' : 'BTC';
+    if (isBitcoinCash) {
+      this.currencies = ['USD', 'EUR'];
+    }
+    this.url = `https://api.bitfinex.com/v1/pubticker/${this.baseSymbol}`;
+    this.urlHist = `https://api-pub.bitfinex.com/v2/candles/trade:{GRANULARITY}:t${this.baseSymbol}{CURRENCY}/hist`;
   }
 }
 

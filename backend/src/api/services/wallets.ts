@@ -5,6 +5,8 @@ import bitcoinApi from '../bitcoin/bitcoin-api-factory';
 import axios from 'axios';
 import { TransactionExtended } from '../../mempool.interfaces';
 import { promises as fsPromises } from 'fs';
+import { Common } from '../common';
+import { toCashAddress, toLegacyAddress } from '../../utils/cashaddr';
 
 interface WalletAddress {
   address: string;
@@ -216,13 +218,14 @@ class WalletApi {
           const response = await axios.get(config.MEMPOOL_SERVICES.API + `/wallets/${wallet.name}`);
           const addresses: Record<string, WalletAddress> = response.data;
           const addressList: WalletAddress[] = Object.values(addresses);
+          const normalizedAddressSet = new Set(addressList.map((addr) => this.normalizeAddress(addr.address)));
           // sync all current addresses
           for (const address of addressList) {
             await this.$syncWalletAddress(wallet, address);
           }
           // remove old addresses
           for (const address of Object.keys(wallet.addresses)) {
-            if (address !== 'private' && !addresses[address]) {
+            if (address !== 'private' && !normalizedAddressSet.has(address)) {
               delete wallet.addresses[address];
             }
           }
@@ -242,20 +245,22 @@ class WalletApi {
 
   // resync address transactions from esplora
   async $syncWalletAddress(wallet: Wallet, address: WalletAddress): Promise<void> {
+    const normalizedAddress = this.normalizeAddress(address.address);
+    const backendAddress = this.getBackendAddress(address.address);
     // fetch full transaction data if the address is new or still active and hasn't been synced in the last hour
-    const refreshTransactions = !wallet.addresses[address.address] || (address.active && (Date.now() - wallet.addresses[address.address].lastSync) > 60 * 60 * 1000);
+    const refreshTransactions = !wallet.addresses[normalizedAddress] || (address.active && (Date.now() - wallet.addresses[normalizedAddress].lastSync) > 60 * 60 * 1000);
     if (refreshTransactions) {
       try {
-        const summary = await bitcoinApi.$getAddressTransactionSummary(address.address);
-        const addressInfo = await bitcoinApi.$getAddress(address.address);
+        const summary = await bitcoinApi.$getAddressTransactionSummary(backendAddress);
+        const addressInfo = await bitcoinApi.$getAddress(backendAddress);
         const walletAddress: WalletAddress = {
-          address: address.address,
+          address: normalizedAddress,
           active: address.active,
           transactions: summary,
           stats: addressInfo.chain_stats,
           lastSync: Date.now(),
         };
-        wallet.addresses[address.address] = walletAddress;
+        wallet.addresses[normalizedAddress] = walletAddress;
       } catch (e) {
         logger.err(`Error syncing wallet address ${address.address}: ${(e instanceof Error ? e.message : e)}`);
       }
@@ -275,19 +280,19 @@ class WalletApi {
         const spentCount: Record<string, number> = {};
         let anyMatch = false;
         for (const vin of tx.vin) {
-          const address = vin.prevout?.scriptpubkey_address;
-          if (address && wallet.addresses[address]) {
+          const normalizedAddress = this.normalizeAddress(vin.prevout?.scriptpubkey_address || '');
+          if (normalizedAddress && wallet.addresses[normalizedAddress]) {
             anyMatch = true;
-            spent[address] = (spent[address] ?? 0) + (vin.prevout?.value ?? 0);
-            spentCount[address] = (spentCount[address] ?? 0) + 1;
+            spent[normalizedAddress] = (spent[normalizedAddress] ?? 0) + (vin.prevout?.value ?? 0);
+            spentCount[normalizedAddress] = (spentCount[normalizedAddress] ?? 0) + 1;
           }
         }
         for (const vout of tx.vout) {
-          const address = vout.scriptpubkey_address;
-          if (address && wallet.addresses[address]) {
+          const normalizedAddress = this.normalizeAddress(vout.scriptpubkey_address || '');
+          if (normalizedAddress && wallet.addresses[normalizedAddress]) {
             anyMatch = true;
-            funded[address] = (funded[address] ?? 0) + (vout.value ?? 0);
-            fundedCount[address] = (fundedCount[address] ?? 0) + 1;
+            funded[normalizedAddress] = (funded[normalizedAddress] ?? 0) + (vout.value ?? 0);
+            fundedCount[normalizedAddress] = (fundedCount[normalizedAddress] ?? 0) + 1;
           }
         }
         for (const address of Object.keys({ ...funded, ...spent })) {
@@ -312,6 +317,23 @@ class WalletApi {
       }
     }
     return walletTransactions;
+  }
+
+  private normalizeAddress(address: string): string {
+    if (!address || address === 'private') {
+      return address;
+    }
+    if (!Common.isBitcoinCash()) {
+      return address;
+    }
+    return toCashAddress(address) || address;
+  }
+
+  private getBackendAddress(address: string): string {
+    if (!Common.isBitcoinCash()) {
+      return address;
+    }
+    return toLegacyAddress(address) || address;
   }
 }
 

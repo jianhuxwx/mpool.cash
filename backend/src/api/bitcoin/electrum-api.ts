@@ -8,6 +8,8 @@ import logger from '../../logger';
 import crypto from "crypto-js";
 import loadingIndicators from '../loading-indicators';
 import memoryCache from '../memory-cache';
+import { Common } from '../common';
+import { toCashAddress, toLegacyAddress } from '../../utils/cashaddr';
 
 class BitcoindElectrsApi extends BitcoinApi implements AbstractBitcoinApi {
   private electrumClient: any;
@@ -41,10 +43,12 @@ class BitcoindElectrsApi extends BitcoinApi implements AbstractBitcoinApi {
   }
 
   async $getAddress(address: string): Promise<IEsploraApi.Address> {
-    const addressInfo = await this.bitcoindClient.validateAddress(address);
+    const lookupAddress = Common.isBitcoinCash() ? (toLegacyAddress(address) || address) : address;
+    const addressInfo = await this.bitcoindClient.validateAddress(lookupAddress);
     if (!addressInfo || !addressInfo.isvalid) {
+      const displayAddress = Common.isBitcoinCash() ? (toCashAddress(address) || address) : address;
       return ({
-        'address': address,
+        'address': displayAddress,
         'chain_stats': {
           'funded_txo_count': 0,
           'funded_txo_sum': 0,
@@ -69,7 +73,7 @@ class BitcoindElectrsApi extends BitcoinApi implements AbstractBitcoinApi {
       const unconfirmed = history.filter((h) => h.fee).length;
 
       return {
-        'address': addressInfo.address,
+        'address': Common.isBitcoinCash() ? (toCashAddress(addressInfo.address) || addressInfo.address) : addressInfo.address,
         'chain_stats': {
           'funded_txo_count': 0,
           'funded_txo_sum': balance.confirmed ? balance.confirmed : 0,
@@ -92,7 +96,8 @@ class BitcoindElectrsApi extends BitcoinApi implements AbstractBitcoinApi {
   }
 
   async $getAddressTransactions(address: string, lastSeenTxId: string): Promise<IEsploraApi.Transaction[]> {
-    const addressInfo = await this.bitcoindClient.validateAddress(address);
+    const lookupAddress = Common.isBitcoinCash() ? (toLegacyAddress(address) || address) : address;
+    const addressInfo = await this.bitcoindClient.validateAddress(lookupAddress);
     if (!addressInfo || !addressInfo.isvalid) {
       return [];
     }
@@ -161,7 +166,8 @@ class BitcoindElectrsApi extends BitcoinApi implements AbstractBitcoinApi {
   }
 
   async $getAddressUtxos(address: string): Promise<IEsploraApi.UTXO[]> {
-    const addressInfo = await this.bitcoindClient.validateAddress(address);
+    const lookupAddress = Common.isBitcoinCash() ? (toLegacyAddress(address) || address) : address;
+    const addressInfo = await this.bitcoindClient.validateAddress(lookupAddress);
     if (!addressInfo || !addressInfo.isvalid) {
       return [];
     }

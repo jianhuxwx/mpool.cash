@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { URL } = require('url');
 
 const FRONTEND_CONFIG_FILE_NAME = 'mempool-frontend-config.json';
 
@@ -18,13 +19,32 @@ try {
   }
 }
 
+const DEFAULT_API_TARGET = 'http://127.0.0.1:8999';
+const DEFAULT_SERVICES_TARGET = 'http://127.0.0.1:8999';
+
+const resolveTarget = (fallback, value) => {
+  if (!value) {
+    return fallback;
+  }
+  try {
+    const parsed = new URL(value);
+    return parsed.origin;
+  } catch (err) {
+    console.warn(`Invalid proxy target "${value}". Falling back to ${fallback}.`);
+    return fallback;
+  }
+};
+
+const apiTarget = resolveTarget(DEFAULT_API_TARGET, configContent?.API_BASE_URL);
+const servicesTarget = resolveTarget(DEFAULT_SERVICES_TARGET, configContent?.SERVICES_API);
+
 let PROXY_CONFIG = [];
 
 if (configContent && configContent.BASE_MODULE === 'liquid') {
   PROXY_CONFIG.push(...[
     {
       context: ['/liquid/api/v1/**'],
-      target: `http://localhost:8999`,
+      target: apiTarget,
       secure: false,
       ws: true,
       changeOrigin: true,
@@ -35,7 +55,7 @@ if (configContent && configContent.BASE_MODULE === 'liquid') {
     },
     {
       context: ['/liquid/api/**'],
-      target: `http://localhost:8999`,
+      target: apiTarget,
       secure: false,
       changeOrigin: true,
       proxyTimeout: 30000,
@@ -45,7 +65,7 @@ if (configContent && configContent.BASE_MODULE === 'liquid') {
     },
     {
       context: ['/liquidtestnet/api/v1/**'],
-      target: `http://localhost:8999`,
+      target: apiTarget,
       secure: false,
       ws: true,
       changeOrigin: true,
@@ -56,7 +76,7 @@ if (configContent && configContent.BASE_MODULE === 'liquid') {
     },
     {
       context: ['/liquidtestnet/api/**'],
-      target: `http://localhost:8999`,
+      target: apiTarget,
       secure: false,
       changeOrigin: true,
       proxyTimeout: 30000,
@@ -70,7 +90,7 @@ if (configContent && configContent.BASE_MODULE === 'liquid') {
 PROXY_CONFIG.push(...[
   {
     context: ['/testnet/api/v1/lightning/**'],
-    target: `http://localhost:8999`,
+    target: apiTarget,
     secure: false,
     changeOrigin: true,
     proxyTimeout: 30000,
@@ -80,7 +100,7 @@ PROXY_CONFIG.push(...[
   },
   {
     context: ['/api/v1/services/**'],
-    target: `http://localhost:9000`,
+    target: servicesTarget,
     secure: false,
     ws: true,
     changeOrigin: true,
@@ -88,7 +108,7 @@ PROXY_CONFIG.push(...[
   },
   {
     context: ['/api/v1/**'],
-    target: `http://localhost:8999`,
+    target: apiTarget,
     secure: false,
     ws: true,
     changeOrigin: true,
@@ -96,7 +116,7 @@ PROXY_CONFIG.push(...[
   },
   {
     context: ['/api/**'],
-    target: `http://localhost:8999`,
+    target: apiTarget,
     secure: false,
     changeOrigin: true,
     proxyTimeout: 30000,

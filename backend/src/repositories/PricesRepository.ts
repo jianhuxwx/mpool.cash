@@ -3,6 +3,8 @@ import logger from '../logger';
 import config from '../config';
 import priceUpdater from '../tasks/price-updater';
 
+const BASE_ASSET_TICKER = ['bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK) ? 'BCH' : 'BTC';
+
 export interface ApiPrice {
   time?: number,
   USD: number,
@@ -175,7 +177,7 @@ class PricesRepository {
     // Sanity check
     for (const currency of Object.keys(prices)) {
       if (prices[currency] < -1 || prices[currency] > MAX_PRICES[currency]) { // We use -1 to mark a "missing data, so it's a valid entry"
-        logger.info(`Ignore BTC${currency} price of ${prices[currency]}`);
+        logger.info(`Ignore ${BASE_ASSET_TICKER}${currency} price of ${prices[currency]}`);
         prices[currency] = 0;
       }
     }

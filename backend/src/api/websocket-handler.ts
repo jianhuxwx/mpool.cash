@@ -29,6 +29,7 @@ import statistics from './statistics/statistics';
 import accelerationRepository from '../repositories/AccelerationRepository';
 import bitcoinApi from './bitcoin/bitcoin-api-factory';
 import walletApi from './services/wallets';
+import { toCashAddress, toLegacyAddress } from '../utils/cashaddr';
 
 interface AddressTransactions {
   mempool: MempoolTransactionExtended[],
@@ -1434,6 +1435,13 @@ class WebsocketHandler {
   //  - lowercase scriptpubkey for P2PK
   // or false if invalid
   private testAddress(address): string | false {
+    if (Common.isBitcoinCash()) {
+      const legacy = toLegacyAddress(address);
+      if (legacy) {
+        const cash = toCashAddress(address) || toCashAddress(legacy);
+        return cash ? cash.toLowerCase() : legacy;
+      }
+    }
     if (/^([a-km-zA-HJ-NP-Z1-9]{26,35}|[a-km-zA-HJ-NP-Z1-9]{80}|[a-z]{2,5}1[ac-hj-np-z02-9]{8,100}|[A-Z]{2,5}1[AC-HJ-NP-Z02-9]{8,100}|04[a-fA-F0-9]{128}|(02|03)[a-fA-F0-9]{64})$/.test(address)) {
       if (/^[A-Z]{2,5}1[AC-HJ-NP-Z02-9]{8,100}|04[a-fA-F0-9]{128}|(02|03)[a-fA-F0-9]{64}$/.test(address)) {
         address = address.toLowerCase();

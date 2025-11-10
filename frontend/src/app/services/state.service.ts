@@ -59,12 +59,20 @@ export interface Env {
   NGINX_PROTOCOL?: string;
   NGINX_HOSTNAME?: string;
   NGINX_PORT?: string;
+  API_BASE_URL?: string;
+  WS_BASE_URL?: string;
   BLOCK_WEIGHT_UNITS: number;
   MEMPOOL_BLOCKS_AMOUNT: number;
   GIT_COMMIT_HASH: string;
   PACKAGE_JSON_VERSION: string;
   MEMPOOL_WEBSITE_URL: string;
   LIQUID_WEBSITE_URL: string;
+  COIN_NAME: string;
+  COIN_TICKER: string;
+  SATOSHI_NAME: string;
+  SMALLEST_UNIT_NAME: string;
+  FEE_RATE_UNIT_MAIN: string;
+  FEE_RATE_UNIT_SECONDARY: string;
   MINING_DASHBOARD: boolean;
   LIGHTNING: boolean;
   AUDIT: boolean;
@@ -101,15 +109,23 @@ const defaultEnv: Env = {
   'ITEMS_PER_PAGE': 10,
   'KEEP_BLOCKS_AMOUNT': 8,
   'OFFICIAL_MEMPOOL_SPACE': false,
-  'NGINX_PROTOCOL': 'http',
-  'NGINX_HOSTNAME': '127.0.0.1',
-  'NGINX_PORT': '80',
-  'BLOCK_WEIGHT_UNITS': 4000000,
+  'NGINX_PROTOCOL': 'https',
+  'NGINX_HOSTNAME': 'mpool.cash',
+  'NGINX_PORT': '443',
+  'API_BASE_URL': 'https://mpool.cash',
+  'WS_BASE_URL': 'wss://mpool.cash{network}/api/v1/ws',
+  'BLOCK_WEIGHT_UNITS': 128000000,
   'MEMPOOL_BLOCKS_AMOUNT': 8,
   'GIT_COMMIT_HASH': '',
   'PACKAGE_JSON_VERSION': '',
-  'MEMPOOL_WEBSITE_URL': 'https://mempool.space',
+  'MEMPOOL_WEBSITE_URL': 'https://mpool.cash',
   'LIQUID_WEBSITE_URL': 'https://liquid.network',
+  'COIN_NAME': 'Bitcoin Cash',
+  'COIN_TICKER': 'BCH',
+  'SATOSHI_NAME': 'satoshi',
+  'SMALLEST_UNIT_NAME': 'sat',
+  'FEE_RATE_UNIT_MAIN': 'sat/B',
+  'FEE_RATE_UNIT_SECONDARY': '',
   'MINING_DASHBOARD': true,
   'LIGHTNING': false,
   'AUDIT': false,
@@ -127,7 +143,7 @@ const defaultEnv: Env = {
   'PUBLIC_ACCELERATIONS': false,
   'ADDITIONAL_CURRENCIES': false,
   'STRATUM_ENABLED': false,
-  'SERVICES_API': 'https://mempool.space/api/v1/services',
+  'SERVICES_API': 'https://mpool.cash/api/v1/services',
   'PROD_DOMAINS': [],
 };
 

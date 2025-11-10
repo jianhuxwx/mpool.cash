@@ -1,14 +1,22 @@
+import config from '../../config';
 import { query } from '../../utils/axios-query';
 import priceUpdater, { PriceFeed, PriceHistory } from '../price-updater';
 
 class GeminiApi implements PriceFeed {
   public name: string = 'Gemini';
   public currencies: string[] = ['USD', 'EUR', 'GBP', 'SGD'];
-
-  public url: string = 'https://api.gemini.com/v1/pubticker/BTC';
-  public urlHist: string = 'https://api.gemini.com/v2/candles/BTC{CURRENCY}/{GRANULARITY}';
+  public url: string;
+  public urlHist: string;
+  private baseSymbol: 'BTC' | 'BCH';
 
   constructor() {
+    const isBitcoinCash = ['bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK);
+    this.baseSymbol = isBitcoinCash ? 'BCH' : 'BTC';
+    if (isBitcoinCash) {
+      this.currencies = ['USD'];
+    }
+    this.url = `https://api.gemini.com/v1/pubticker/${this.baseSymbol}`;
+    this.urlHist = `https://api.gemini.com/v2/candles/${this.baseSymbol}{CURRENCY}/{GRANULARITY}`;
   }
 
   public async $fetchPrice(currency): Promise<number> {

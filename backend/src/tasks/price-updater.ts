@@ -10,6 +10,8 @@ import GeminiApi from './price-feeds/gemini-api';
 import KrakenApi from './price-feeds/kraken-api';
 import FreeCurrencyApi from './price-feeds/free-currency-api';
 
+const IS_BITCOIN_CASH = ['bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK);
+
 export interface PriceFeed {
   name: string;
   url: string;
@@ -54,7 +56,8 @@ class PriceUpdater {
   private lastHistoricalRun = 0;
   private running = false;
   private feeds: PriceFeed[] = [];
-  private currencies: string[] = ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'AUD', 'JPY'];
+  private assetTicker: 'BTC' | 'BCH' = IS_BITCOIN_CASH ? 'BCH' : 'BTC';
+  private currencies: string[] = IS_BITCOIN_CASH ? ['USD', 'EUR'] : ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'AUD', 'JPY'];
   private latestPrices: ApiPrice;
   private latestGoodPrices: ApiPrice;
   private currencyConversionFeed: ConversionFeed | undefined;
@@ -67,7 +70,9 @@ class PriceUpdater {
     this.latestPrices = this.getEmptyPricesObj();
     this.latestGoodPrices = this.getEmptyPricesObj();
 
-    this.feeds.push(new BitflyerApi()); // Does not have historical endpoint
+    if (!IS_BITCOIN_CASH) {
+      this.feeds.push(new BitflyerApi()); // Does not have historical endpoint
+    }
     this.feeds.push(new KrakenApi());
     this.feeds.push(new CoinbaseApi());
     this.feeds.push(new BitfinexApi());
@@ -131,6 +136,7 @@ class PriceUpdater {
   public async $initializeLatestPriceWithDb(): Promise<void> {
     this.latestPrices = await PricesRepository.$getLatestConversionRates();
     this.latestGoodPrices = JSON.parse(JSON.stringify(this.latestPrices));
+    this.resetUnusedCurrencyFields();
   }
 
   public async $run(): Promise<void> {
@@ -176,7 +182,7 @@ class PriceUpdater {
       }
 
     } catch (e: any) {
-      logger.err(`Cannot save BTC prices in db. Reason: ${e instanceof Error ? e.message : e}`, logger.tags.mining);
+      logger.err(`Cannot save ${this.assetTicker} prices in db. Reason: ${e instanceof Error ? e.message : e}`, logger.tags.mining);
     }
 
     this.running = false;
@@ -209,7 +215,7 @@ class PriceUpdater {
   }
 
   /**
-   * Fetch last BTC price from exchanges, average them, and save it in the database once every hour
+   * Fetch last fiat price for the active base asset from exchanges, average them, and save it in the database once every hour
    */
   private async $updatePrice(): Promise<void> {
     let forceUpdate = false;
@@ -243,14 +249,14 @@ class PriceUpdater {
             if (price > -1 && price < MAX_PRICES[currency]) {
               prices.push(price);
             }
-            logger.debug(`${feed.name} BTC/${currency} price: ${price}`, logger.tags.mining);
+            logger.debug(`${feed.name} ${this.assetTicker}/${currency} price: ${price}`, logger.tags.mining);
           } catch (e) {
-            logger.debug(`Could not fetch BTC/${currency} price at ${feed.name}. Reason: ${(e instanceof Error ? e.message : e)}`, logger.tags.mining);
+            logger.debug(`Could not fetch ${this.assetTicker}/${currency} price at ${feed.name}. Reason: ${(e instanceof Error ? e.message : e)}`, logger.tags.mining);
           }
         }
       }
       if (prices.length === 1) {
-        logger.debug(`Only ${prices.length} feed available for BTC/${currency} price`, logger.tags.mining);
+        logger.debug(`Only ${prices.length} feed available for ${this.assetTicker}/${currency} price`, logger.tags.mining);
       }
 
       // Compute average price, non weighted
@@ -270,6 +276,8 @@ class PriceUpdater {
       }
     }
 
+    this.resetUnusedCurrencyFields();
+
     if (config.DATABASE.ENABLED === true && this.cyclePosition === 0) {
       // Save everything in db
       try {
@@ -288,9 +296,9 @@ class PriceUpdater {
     }
 
     if (this.latestPrices.USD === -1) {
-      logger.warn(`No BTC price available, falling back to latest known price: ${JSON.stringify(this.latestGoodPrices)}`);
+      logger.warn(`No ${this.assetTicker} price available, falling back to latest known price: ${JSON.stringify(this.latestGoodPrices)}`);
     } else {
-      logger.info(`Latest BTC fiat averaged price: ${JSON.stringify(this.latestGoodPrices)}`);
+      logger.info(`Latest ${this.assetTicker} fiat averaged price: ${JSON.stringify(this.latestGoodPrices)}`);
     }
 
     if (this.ratesChangedCallback && this.latestGoodPrices.USD > 0) {
@@ -307,28 +315,32 @@ class PriceUpdater {
   private async $insertHistoricalPrices(): Promise<void> {
     const existingPriceTimes = await PricesRepository.$getPricesTimes();
 
-    // Insert MtGox weekly prices
-    const pricesJson: any[] = JSON.parse(fs.readFileSync(path.join(__dirname, 'mtgox-weekly.json')).toString());
-    const prices = this.getEmptyPricesObj();
-    let insertedCount: number = 0;
-    for (const price of pricesJson) {
-      if (existingPriceTimes.includes(price['ct'])) {
-        continue;
-      }
+    if (!IS_BITCOIN_CASH) {
+      // Insert MtGox weekly prices
+      const pricesJson: any[] = JSON.parse(fs.readFileSync(path.join(__dirname, 'mtgox-weekly.json')).toString());
+      const prices = this.getEmptyPricesObj();
+      let insertedCount: number = 0;
+      for (const price of pricesJson) {
+        if (existingPriceTimes.includes(price['ct'])) {
+          continue;
+        }
 
-      // From 1380758400 we will use Kraken price as it follows closely MtGox, but was not affected as much
-      // by the MtGox exchange collapse a few months later
-      if (price['ct'] > 1380758400) {
-        break;
+        // From 1380758400 we will use Kraken price as it follows closely MtGox, but was not affected as much
+        // by the MtGox exchange collapse a few months later
+        if (price['ct'] > 1380758400) {
+          break;
+        }
+        prices.USD = price['c'];
+        await PricesRepository.$savePrices(price['ct'], prices);
+        ++insertedCount;
       }
-      prices.USD = price['c'];
-      await PricesRepository.$savePrices(price['ct'], prices);
-      ++insertedCount;
-    }
-    if (insertedCount > 0) {
-      logger.notice(`Inserted ${insertedCount} MtGox USD weekly price history into db`, logger.tags.mining);
+      if (insertedCount > 0) {
+        logger.notice(`Inserted ${insertedCount} MtGox USD weekly price history into db`, logger.tags.mining);
+      } else {
+        logger.debug(`Inserted ${insertedCount} MtGox USD weekly price history into db`, logger.tags.mining);
+      }
     } else {
-      logger.debug(`Inserted ${insertedCount} MtGox USD weekly price history into db`, logger.tags.mining);
+      logger.debug('Skipping MtGox BTC historical price import for Bitcoin Cash network', logger.tags.mining);
     }
 
     // Insert Kraken weekly prices
@@ -372,9 +384,10 @@ class PriceUpdater {
         }
 
         if (grouped[time] === undefined) {
-          grouped[time] = {
-            USD: [], EUR: [], GBP: [], CAD: [], CHF: [], AUD: [], JPY: []
-          };
+          grouped[time] = {};
+          for (const currency of this.currencies) {
+            grouped[time][currency] = [];
+          }
         }
 
         for (const currency of this.currencies) {
@@ -495,6 +508,17 @@ class PriceUpdater {
       }
     });
     return missingCurrencies;
+  }
+
+  private resetUnusedCurrencyFields(): void {
+    const tracked = new Set(this.currencies);
+    const legacyCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'CHF', 'AUD', 'JPY'];
+    for (const currency of legacyCurrencies) {
+      if (!tracked.has(currency)) {
+        this.latestPrices[currency] = -1;
+        this.latestGoodPrices[currency] = -1;
+      }
+    }
   }
 }
 

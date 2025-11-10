@@ -1,4 +1,5 @@
 {
+  "_note": "Supported networks: mainnet, testnet, signet, liquid, liquidtestnet, bitcoincash, bitcoincashtestnet",
   "MEMPOOL": {
     "OFFICIAL": false,
     "NETWORK": "mainnet",
@@ -163,5 +164,6 @@
     "ENABLED": true,
     "PAID": false,
     "API_KEY": "your-api-key-from-freecurrencyapi.com"
-  }
+  },
+  "_note": "Supported networks: mainnet, testnet, signet, liquid, liquidtestnet, bitcoincash, bitcoincashtestnet"
 }

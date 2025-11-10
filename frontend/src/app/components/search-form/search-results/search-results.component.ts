@@ -59,7 +59,7 @@ export class SearchResultsComponent implements OnChanges {
         }
         if (this.resultsFlattened[this.activeIdx]) {
           this.selectedResult.emit(this.resultsFlattened[this.activeIdx]);
-        } else {
+        } else if (this.results?.searchText) {
           this.selectedResult.emit(this.results.searchText);
         }
         this.results = null;

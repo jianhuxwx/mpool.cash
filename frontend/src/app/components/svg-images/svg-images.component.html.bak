@@ -84,7 +84,9 @@
 
   <ng-container *ngSwitchCase="'officialMempoolSpace'">
     <!-- MpoolCash Logo - Sized correctly -->
-    <img [src]="'/resources/mpool-cash-logo.svg'" [class]="class" [style]="style" [attr.width]="width" [attr.height]="height" style="max-width: 100%; height: auto;" alt="MpoolCash" />
+    <div [style.width.px]="width" [style.height.px]="height" [style.display]="'flex'" [style.align-items]="'center'" [style.justify-content]="'center'">
+      <img [src]="'/resources/mpool-cash-logo.svg'" [style.max-width]="'100%'" [style.max-height]="'100%'" alt="MpoolCash" />
+    </div>
   </ng-container>
   <ng-container *ngSwitchCase="'warning'">
     <svg [class]="class" [style]="style" [attr.width]="width" [attr.height]="height" [attr.viewBox]="viewBox" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -94,7 +96,10 @@
   </ng-container>
   <ng-container *ngSwitchCase="'mempoolSpace'">
     <!-- MpoolCash Logo - Sized correctly -->
-    <img [src]="'/resources/mpool-cash-logo.svg'" [class]="class" [style]="style" [attr.width]="width" [attr.height]="height" style="max-width: 100%; height: auto;" alt="MpoolCash" />
+    <div [style.width.px]="width" [style.height.px]="height" [style.display]="'flex'" [style.align-items]="'center'" [style.justify-content]="'center'">
+      <img [src]="'/resources/mpool-cash-logo.svg'" [style.max-width]="'100%'" [style.max-height]="'100%'" alt="MpoolCash" />
+    </div>
+  </ng-container>
   </ng-container>
   <ng-container *ngSwitchCase="'liquidNetwork'">
     <svg width="140" viewBox="0 0 500 126" fill="none" xmlns="http://www.w3.org/2000/svg">

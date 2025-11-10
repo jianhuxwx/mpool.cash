@@ -16,6 +16,8 @@ export class FeeRateComponent implements OnInit {
   @Input() unitStyle: any;
 
   rateUnits$: Observable<string>;
+  mainUnitLabel: string;
+  secondaryUnitLabel: string;
 
   constructor(
     private stateService: StateService,
@@ -23,5 +25,7 @@ export class FeeRateComponent implements OnInit {
 
   ngOnInit() {
     this.rateUnits$ = this.stateService.rateUnits$;
+    this.mainUnitLabel = this.stateService.env.FEE_RATE_UNIT_MAIN || 'sat/vB';
+    this.secondaryUnitLabel = this.stateService.env.FEE_RATE_UNIT_SECONDARY || 'sat/WU';
   }
 }

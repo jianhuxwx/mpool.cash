@@ -21,7 +21,7 @@ const initData = makeStateKey('/api/v1/init-data');
 })
 export class WebsocketService {
   private webSocketProtocol = (document.location.protocol === 'https:') ? 'wss:' : 'ws:';
-  private webSocketUrl = this.webSocketProtocol + '//' + document.location.hostname + ':' + document.location.port + '{network}/api/v1/ws';
+  private webSocketTemplate = this.webSocketProtocol + '//' + document.location.hostname + ':' + document.location.port + '{network}/api/v1/ws';
 
   private websocketSubject: WebSocketSubject<WebsocketResponse>;
   private goneOffline = false;
@@ -60,8 +60,11 @@ export class WebsocketService {
         .pipe(take(1))
         .subscribe((response) => this.handleResponse(response));
     } else {
+      if (this.stateService.env.WS_BASE_URL) {
+        this.webSocketTemplate = this.stateService.env.WS_BASE_URL;
+      }
       this.network = this.stateService.network === this.stateService.env.ROOT_NETWORK ? '' : this.stateService.network;
-      this.websocketSubject = webSocket<WebsocketResponse>(this.webSocketUrl.replace('{network}', this.network ? '/' + this.network : ''));
+      this.websocketSubject = webSocket<WebsocketResponse>(this.buildWebsocketUrl(this.network));
 
       const { response: theInitData } = this.transferState.get<any>(initData, null) || {};
       if (theInitData) {
@@ -96,10 +99,30 @@ export class WebsocketService {
     this.websocketSubject.complete();
     this.subscription.unsubscribe();
     this.websocketSubject = webSocket<WebsocketResponse>(
-      this.webSocketUrl.replace('{network}', this.network ? '/' + this.network : '')
+      this.buildWebsocketUrl(this.network)
     );
 
     this.startSubscription(retrying, hasInitData);
+  }
+
+  private buildWebsocketUrl(network: string): string {
+    const template = this.webSocketTemplate;
+    const networkPath = network ? '/' + network : '';
+
+    if (template.includes('{network}')) {
+      return template.replace('{network}', networkPath);
+    }
+
+    if (!networkPath) {
+      return template;
+    }
+
+    const apiIndex = template.indexOf('/api/');
+    if (apiIndex > -1) {
+      return template.slice(0, apiIndex) + networkPath + template.slice(apiIndex);
+    }
+
+    return template + networkPath;
   }
 
   startSubscription(retrying = false, hasInitData = false) {

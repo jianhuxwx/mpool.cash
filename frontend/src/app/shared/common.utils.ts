@@ -152,12 +152,22 @@ export function nextRoundNumber(num: number): number {
 }
 
 export function seoDescriptionNetwork(network: string): string {
-  if( network === 'liquidtestnet' || network === 'testnet' ) {
-    return ' Testnet';
-  } else if( network === 'signet' || network === 'testnet' || network === 'testnet4') {
+  if (network === 'liquid') {
+    return ' Liquid';
+  }
+  if (network === 'liquidtestnet') {
+    return ' Liquid Testnet';
+  }
+  if (network === 'testnet' || network === 'testnet4') {
+    return ' Cash Testnet';
+  }
+  if (network === 'signet') {
+    return ' Cash Signet';
+  }
+  if (network) {
     return ' ' + network.charAt(0).toUpperCase() + network.slice(1);
   }
-  return '';
+  return ' Cash';
 }
 
 export function uncompressTx(tx: TransactionCompressed): TransactionStripped {
@@ -205,7 +215,7 @@ export function renderSats(value: number, network: string, mode: 'sats' | 'btc' 
       break;
   }
   if (mode === 'btc' || (mode === 'auto' && value >= 1000000)) {
-    return `${amountShortenerPipe.transform(value / 100000000, 2)} ${prefix}BTC`;
+    return `${amountShortenerPipe.transform(value / 100000000, 2)} ${prefix}BCH`;
   } else {
     if (prefix.length) {
       prefix += '-';

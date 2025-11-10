@@ -21,6 +21,8 @@ export class SearchFormComponent implements OnInit {
   @Input() hamburgerOpen = false;
   env: Env;
   network = '';
+  coinName: string;
+  placeholderText: string;
   assets: object = {};
   pools: object[] = [];
   isSearching = false;
@@ -66,6 +68,8 @@ export class SearchFormComponent implements OnInit {
     private relativeUrlPipe: RelativeUrlPipe,
     private elementRef: ElementRef
   ) {
+    this.coinName = this.stateService.env.COIN_NAME || 'Bitcoin Cash';
+    this.placeholderText = `Explore the ${this.coinName} network`;
   }
 
   ngOnInit(): void {

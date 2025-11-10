@@ -6,7 +6,7 @@ interface IConfig {
   MEMPOOL: {
     ENABLED: boolean;
     OFFICIAL: boolean;
-    NETWORK: 'mainnet' | 'testnet' | 'signet' | 'liquid' | 'liquidtestnet';
+    NETWORK: 'mainnet' | 'testnet' | 'signet' | 'liquid' | 'liquidtestnet' | 'bitcoincash' | 'bitcoincashtestnet';
     BACKEND: 'esplora' | 'electrum' | 'none';
     HTTP_PORT: number;
     UNIX_SOCKET_PATH: string;
@@ -368,6 +368,7 @@ class Config implements IConfig {
 
   constructor() {
     const configs = this.merge(configFromFile, defaults);
+    this.applyNetworkDefaults(configs);
     this.MEMPOOL = configs.MEMPOOL;
     this.ESPLORA = configs.ESPLORA;
     this.ELECTRUM = configs.ELECTRUM;
@@ -398,6 +399,28 @@ class Config implements IConfig {
       });
       return next;
     });
+  }
+
+  private applyNetworkDefaults(configs: IConfig): void {
+    if (['bitcoincash', 'bitcoincashtestnet'].includes(configs.MEMPOOL.NETWORK)) {
+      configs.MEMPOOL.BLOCK_WEIGHT_UNITS = 32_000_000;
+      configs.MEMPOOL.RUST_GBT = false;
+      configs.MEMPOOL.LIMIT_GBT = false;
+      configs.MEMPOOL.CPFP_INDEXING = false;
+      configs.MEMPOOL.AUTOMATIC_POOLS_UPDATE = false;
+      configs.MEMPOOL.POOLS_JSON_URL = '';
+      configs.MEMPOOL.POOLS_JSON_TREE_URL = '';
+      configs.MEMPOOL.GOGGLES_INDEXING = false;
+      configs.MEMPOOL.BLOCKS_SUMMARIES_INDEXING = false;
+      if (configs.MEMPOOL.INDEXING_BLOCKS_AMOUNT <= 0) {
+        configs.MEMPOOL.INDEXING_BLOCKS_AMOUNT = 11000;
+      }
+      configs.MEMPOOL.AUDIT = false;
+      configs.LIGHTNING.ENABLED = false;
+      configs.MEMPOOL.USE_SECOND_NODE_FOR_MINFEE = false;
+      configs.MEMPOOL.MAX_PUSH_TX_SIZE_WEIGHT = 32_000_000;
+      configs.MEMPOOL_SERVICES.ACCELERATIONS = false;
+    }
   }
 }
 

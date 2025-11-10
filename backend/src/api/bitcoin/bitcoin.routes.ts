@@ -23,10 +23,18 @@ import { calculateMempoolTxCpfp } from '../cpfp';
 import { handleError } from '../../utils/api';
 import poolsUpdater from '../../tasks/pools-updater';
 import chainTips from '../chain-tips';
+import { toCashAddress, toLegacyAddress } from '../../utils/cashaddr';
+
+const addressForBackend = (address: string): string | null => {
+  if (!Common.isBitcoinCash()) {
+    return address;
+  }
+  return toLegacyAddress(address) || address;
+};
 
 const TXID_REGEX = /^[a-f0-9]{64}$/i;
 const BLOCK_HASH_REGEX = /^[a-f0-9]{64}$/i;
-const ADDRESS_REGEX = /^[a-z0-9]{2,120}$/i;
+const ADDRESS_REGEX = /^[a-z0-9:]{2,120}$/i;
 const SCRIPT_HASH_REGEX = /^([a-f0-9]{2})+$/i;
 
 class BitcoinRoutes {
@@ -475,7 +483,7 @@ class BitcoinRoutes {
 
   private async getBlocks(req: Request, res: Response) {
     try {
-      if (['mainnet', 'testnet', 'signet', 'testnet4'].includes(config.MEMPOOL.NETWORK)) { // Bitcoin
+      if (['mainnet', 'testnet', 'signet', 'testnet4', 'bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK)) { // Bitcoin
         const height = req.params.height === undefined ? undefined : parseInt(req.params.height, 10);
         res.setHeader('Expires', new Date(Date.now() + 1000 * 60).toUTCString());
         res.json(await blocks.$getBlocks(height, 15));
@@ -489,7 +497,7 @@ class BitcoinRoutes {
 
   private async getBlocksByBulk(req: Request, res: Response) {
     try {
-      if (['mainnet', 'testnet', 'signet', 'testnet4'].includes(config.MEMPOOL.NETWORK) === false) { // Liquid - Not implemented
+      if (['mainnet', 'testnet', 'signet', 'testnet4', 'bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK) === false) { // Liquid - Not implemented
         handleError(req, res, 404, `This API is only available for Bitcoin networks`);
         return;
       }
@@ -531,7 +539,7 @@ class BitcoinRoutes {
 
   private async getChainTips(req: Request, res: Response) {
     try {
-      if (['mainnet', 'testnet', 'signet', 'testnet4'].includes(config.MEMPOOL.NETWORK)) { // Bitcoin
+      if (['mainnet', 'testnet', 'signet', 'testnet4', 'bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK)) { // Bitcoin
         res.setHeader('Expires', new Date(Date.now() + 1000 * 60).toUTCString());
         const tips = await chainTips.getChainTips();
         if (tips.length > 0) {
@@ -551,7 +559,7 @@ class BitcoinRoutes {
 
   private async getStaleTips(req: Request, res: Response) {
     try {
-      if (['mainnet', 'testnet', 'signet', 'testnet4'].includes(config.MEMPOOL.NETWORK)) { // Bitcoin
+      if (['mainnet', 'testnet', 'signet', 'testnet4', 'bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK)) { // Bitcoin
         res.setHeader('Expires', new Date(Date.now() + 1000 * 60).toUTCString());
         const tips = await chainTips.getStaleTips();
         if (tips.length > 0) {
@@ -653,13 +661,22 @@ class BitcoinRoutes {
     }
 
     try {
-      const addressData = await bitcoinApi.$getAddress(req.params.address);
+      const backendAddress = addressForBackend(req.params.address);
+      if (!backendAddress) {
+        handleError(req, res, 501, `Invalid address`);
+        return;
+      }
+      const addressData = await bitcoinApi.$getAddress(backendAddress);
+      if (Common.isBitcoinCash()) {
+        addressData.address = toCashAddress(addressData.address) || addressData.address;
+      }
       res.json(addressData);
     } catch (e) {
       if (e instanceof Error && e.message && (e.message.indexOf('too long') > 0 || e.message.indexOf('confirmed status') > 0)) {
         handleError(req, res, 413, e.message);
         return;
       }
+      logger.err(`Failed to get address ${req.params.address}. Reason: ` + (e instanceof Error ? e.message : e));
       handleError(req, res, 500, 'Failed to get address');
     }
   }
@@ -679,7 +696,12 @@ class BitcoinRoutes {
       if (req.query.after_txid && typeof req.query.after_txid === 'string') {
         lastTxId = req.query.after_txid;
       }
-      const transactions = await bitcoinApi.$getAddressTransactions(req.params.address, lastTxId);
+      const backendAddress = addressForBackend(req.params.address);
+      if (!backendAddress) {
+        handleError(req, res, 501, `Invalid address`);
+        return;
+      }
+      const transactions = await bitcoinApi.$getAddressTransactions(backendAddress, lastTxId);
       res.json(transactions);
     } catch (e) {
       if (e instanceof Error && e.message && (e.message.indexOf('too long') > 0 || e.message.indexOf('confirmed status') > 0)) {
@@ -701,7 +723,12 @@ class BitcoinRoutes {
     }
 
     try {
-      const addressData = await bitcoinApi.$getAddressUtxos(req.params.address);
+      const backendAddress = addressForBackend(req.params.address);
+      if (!backendAddress) {
+        handleError(req, res, 501, `Invalid address`);
+        return;
+      }
+      const addressData = await bitcoinApi.$getAddressUtxos(backendAddress);
       res.json(addressData);
     } catch (e) {
       if (e instanceof Error && e.message && (e.message.indexOf('too long') > 0 || e.message.indexOf('confirmed status') > 0)) {
@@ -804,7 +831,8 @@ class BitcoinRoutes {
 
   private async getAddressPrefix(req: Request, res: Response) {
     try {
-      const addressPrefix = await bitcoinApi.$getAddressPrefix(req.params.prefix);
+      const prefix = Common.isBitcoinCash() ? req.params.prefix.toLowerCase() : req.params.prefix;
+      const addressPrefix = await bitcoinApi.$getAddressPrefix(prefix);
       res.send(addressPrefix);
     } catch (e) {
       handleError(req, res, 500, 'Failed to get address prefix');
@@ -941,7 +969,15 @@ class BitcoinRoutes {
       return;
     }
     try {
-      const result = await bitcoinClient.validateAddress(req.params.address);
+      const backendAddress = addressForBackend(req.params.address);
+      if (!backendAddress) {
+        handleError(req, res, 501, `Invalid address`);
+        return;
+      }
+      const result = await bitcoinClient.validateAddress(backendAddress);
+      if (Common.isBitcoinCash()) {
+        result.address = toCashAddress(result.address) || result.address;
+      }
       res.json(result);
     } catch (e) {
       handleError(req, res, 500, 'Failed to validate address');
@@ -1119,12 +1155,14 @@ class BitcoinRoutes {
           try {
             const rawPrevout = await bitcoinClient.getTxOut(outpoint.txid, outpoint.vout, false);
             if (rawPrevout) {
+              const rawAddress = rawPrevout.scriptPubKey && rawPrevout.scriptPubKey.address ? rawPrevout.scriptPubKey.address : '';
+              const scriptpubkeyAddress = Common.isBitcoinCash() ? (toCashAddress(rawAddress) || rawAddress) : rawAddress;
               prevout = {
                 value: Math.round(rawPrevout.value * 100000000),
                 scriptpubkey: rawPrevout.scriptPubKey.hex,
                 scriptpubkey_asm: rawPrevout.scriptPubKey.asm ? transactionUtils.convertScriptSigAsm(rawPrevout.scriptPubKey.hex) : '',
                 scriptpubkey_type: transactionUtils.translateScriptPubKeyType(rawPrevout.scriptPubKey.type),
-                scriptpubkey_address: rawPrevout.scriptPubKey && rawPrevout.scriptPubKey.address ? rawPrevout.scriptPubKey.address : '',
+                scriptpubkey_address: scriptpubkeyAddress,
               };
               unconfirmed = false;
             }
@@ -1174,6 +1212,7 @@ class BitcoinRoutes {
       handleError(req, res, 500, 'Failed to calculate CPFP info');
     }
   }
+
 }
 
 export default new BitcoinRoutes();

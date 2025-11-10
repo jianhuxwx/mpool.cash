@@ -7,6 +7,13 @@ export const BASE58_CHARS = `[a-km-zA-HJ-NP-Z1-9]`;
 export const BECH32_CHARS_LW = `[ac-hj-np-z02-9]`;
 const BECH32_CHARS_UP = `[AC-HJ-NP-Z02-9]`;
 
+const CASHADDR_CHARS_LW = `[qpzry9x8gf2tvdw0s3jn54khce6mua7l]`;
+const CASHADDR_CHARS_UP = `[QPZRY9X8GF2TVDW0S3JN54KHCE6MUA7L]`;
+const CASHADDR_PREFIX_LW = `(?:bitcoincash:)?`;
+const CASHADDR_PREFIX_UP = `(?:BITCOINCASH:)?`;
+const CASHADDR_TESTNET_PREFIX_LW = `(?:(?:bchtest:)|(?:bchreg:))?`;
+const CASHADDR_TESTNET_PREFIX_UP = `(?:(?:BCHTEST:)|(?:BCHREG:))?`;
+
 // Hex characters
 export const HEX_CHARS = `[a-fA-F0-9]`;
 
@@ -267,6 +274,10 @@ export function getRegex(type: RegexType, network?: Network): RegExp {
           regex += `|`; // OR
           regex += ADDRESS_CHARS.mainnet.bech32;
           regex += `|`; // OR
+          regex += `${CASHADDR_PREFIX_LW}[qp]${CASHADDR_CHARS_LW}{41}`;
+          regex += `|`; // OR
+          regex += `${CASHADDR_PREFIX_UP}[QP]${CASHADDR_CHARS_UP}{41}`;
+          regex += `|`; // OR
           regex += `04${HEX_CHARS}{128}`; // Uncompressed pubkey
           regex += `|`; // OR
           regex += `(?:02|03)${HEX_CHARS}{64}`; // Compressed pubkey
@@ -276,6 +287,10 @@ export function getRegex(type: RegexType, network?: Network): RegExp {
           regex += `|`; // OR
           regex += ADDRESS_CHARS.testnet.bech32;
           regex += `|`; // OR
+          regex += `${CASHADDR_TESTNET_PREFIX_LW}[qp]${CASHADDR_CHARS_LW}{41}`;
+          regex += `|`; // OR
+          regex += `${CASHADDR_TESTNET_PREFIX_UP}[QP]${CASHADDR_CHARS_UP}{41}`;
+          regex += `|`; // OR
           regex += `04${HEX_CHARS}{128}`; // Uncompressed pubkey
           regex += `|`; // OR
           regex += `(?:02|03)${HEX_CHARS}{64}`; // Compressed pubkey
@@ -284,6 +299,10 @@ export function getRegex(type: RegexType, network?: Network): RegExp {
           regex += ADDRESS_CHARS.testnet.base58;
           regex += `|`; // OR
           regex += ADDRESS_CHARS.testnet.bech32;
+          regex += `|`; // OR
+          regex += `${CASHADDR_TESTNET_PREFIX_LW}[qp]${CASHADDR_CHARS_LW}{41}`;
+          regex += `|`; // OR
+          regex += `${CASHADDR_TESTNET_PREFIX_UP}[QP]${CASHADDR_CHARS_UP}{41}`;
           regex += `|`; // OR
           regex += `04${HEX_CHARS}{128}`; // Uncompressed pubkey
           regex += `|`; // OR

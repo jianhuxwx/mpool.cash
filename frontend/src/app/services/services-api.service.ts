@@ -42,13 +42,13 @@ export class ServicesApiServices {
   ) {
     this.currentAuth = localStorage.getItem('auth');
 
-    this.apiBaseUrl = ''; // use relative URL by default
-    if (!stateService.isBrowser) { // except when inside AU SSR process
+    this.apiBaseUrl = (this.stateService.env.API_BASE_URL || '').replace(/\/$/, '');
+    if (!stateService.isBrowser && !this.apiBaseUrl) { // except when inside AU SSR process
       this.apiBaseUrl = this.stateService.env.NGINX_PROTOCOL + '://' + this.stateService.env.NGINX_HOSTNAME + ':' + this.stateService.env.NGINX_PORT;
     }
     this.apiBasePath = ''; // assume mainnet by default
     this.stateService.networkChanged$.subscribe((network) => {
-      this.apiBasePath = network ? '/' + network : '';
+      this.apiBasePath = network && network !== this.stateService.env.ROOT_NETWORK ? '/' + network : '';
     });
 
     if (this.stateService.env.GIT_COMMIT_HASH_MEMPOOL_SPACE) {

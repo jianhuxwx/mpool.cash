@@ -17,8 +17,8 @@ export class LightningApiService {
     private httpClient: HttpClient,
     private stateService: StateService,
   ) {
-    this.apiBaseUrl = ''; // use relative URL by default
-    if (!stateService.isBrowser) { // except when inside AU SSR process
+    this.apiBaseUrl = (this.stateService.env.API_BASE_URL || '').replace(/\/$/, '');
+    if (!stateService.isBrowser && !this.apiBaseUrl) { // except when inside AU SSR process
       this.apiBaseUrl = this.stateService.env.NGINX_PROTOCOL + '://' + this.stateService.env.NGINX_HOSTNAME + ':' + this.stateService.env.NGINX_PORT;
     }
     this.apiBasePath = ''; // assume mainnet by default

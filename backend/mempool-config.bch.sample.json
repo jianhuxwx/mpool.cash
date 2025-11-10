@@ -1,0 +1,79 @@
+{
+  "_note": "Sample configuration for running the mempool backend against Bitcoin Cash using a local Fulcrum server.",
+  "MEMPOOL": {
+    "NETWORK": "bitcoincash",
+    "BACKEND": "electrum",
+    "ENABLED": true,
+    "HTTP_PORT": 8999,
+    "SPAWN_CLUSTER_PROCS": 0,
+    "API_URL_PREFIX": "/api/v1/",
+    "POLL_RATE_MS": 2000,
+    "CACHE_DIR": "./cache",
+    "CACHE_ENABLED": true,
+    "CLEAR_PROTECTION_MINUTES": 20,
+    "RECOMMENDED_FEE_PERCENTILE": 50,
+    "BLOCK_WEIGHT_UNITS": 32000000,
+    "INITIAL_BLOCKS_AMOUNT": 8,
+    "MEMPOOL_BLOCKS_AMOUNT": 8,
+    "INDEXING_BLOCKS_AMOUNT": 11000,
+    "BLOCKS_SUMMARIES_INDEXING": false,
+    "GOGGLES_INDEXING": false,
+    "AUTOMATIC_POOLS_UPDATE": false,
+    "POOLS_JSON_URL": "",
+    "POOLS_JSON_TREE_URL": "",
+    "AUDIT": false,
+    "RUST_GBT": false,
+    "LIMIT_GBT": false,
+    "CPFP_INDEXING": false,
+    "MAX_BLOCKS_BULK_QUERY": 0,
+    "DISK_CACHE_BLOCK_INTERVAL": 6,
+    "MAX_PUSH_TX_SIZE_WEIGHT": 32000000,
+    "ALLOW_UNREACHABLE": true,
+    "PRICE_UPDATES_PER_HOUR": 1,
+    "MAX_TRACKED_ADDRESSES": 64
+  },
+  "CORE_RPC": {
+    "HOST": "127.0.0.1",
+    "PORT": 8332,
+    "USERNAME": "mempool",
+    "PASSWORD": "mempool",
+    "TIMEOUT": 60000,
+    "COOKIE": false,
+    "COOKIE_PATH": "/home/bitcoin/.bitcoin/bitcoin.conf",
+    "DEBUG_LOG_PATH": ""
+  },
+  "ELECTRUM": {
+    "HOST": "127.0.0.1",
+    "PORT": 50001,
+    "TLS_ENABLED": false
+  },
+  "DATABASE": {
+    "ENABLED": true,
+    "HOST": "127.0.0.1",
+    "PORT": 3306,
+    "USERNAME": "mempool",
+    "PASSWORD": "mempool",
+    "DATABASE": "mempool",
+    "TIMEOUT": 180000
+  },
+  "STATISTICS": {
+    "ENABLED": true,
+    "TX_PER_SECOND_SAMPLE_PERIOD": 150
+  },
+  "FIAT_PRICE": {
+    "ENABLED": true,
+    "PAID": false,
+    "API_KEY": ""
+  },
+  "LIGHTNING": {
+    "ENABLED": false,
+    "BACKEND": "lnd",
+    "TOPOLOGY_FOLDER": "",
+    "STATS_REFRESH_INTERVAL": 600,
+    "GRAPH_REFRESH_INTERVAL": 600,
+    "LOGGER_UPDATE_INTERVAL": 30,
+    "FORENSICS_INTERVAL": 43200,
+    "FORENSICS_RATE_LIMIT": 20
+  }
+}
+

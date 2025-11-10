@@ -1,14 +1,22 @@
+import config from '../../config';
 import { query } from '../../utils/axios-query';
 import priceUpdater, { PriceFeed, PriceHistory } from '../price-updater';
 
 class CoinbaseApi implements PriceFeed {
   public name: string = 'Coinbase';
   public currencies: string[] = ['USD', 'EUR', 'GBP'];
-
-  public url: string = 'https://api.coinbase.com/v2/prices/BTC-{CURRENCY}/spot';
-  public urlHist: string = 'https://api.exchange.coinbase.com/products/BTC-{CURRENCY}/candles?granularity={GRANULARITY}';
+  public url: string;
+  public urlHist: string;
+  private baseSymbol: 'BTC' | 'BCH';
 
   constructor() {
+    const isBitcoinCash = ['bitcoincash', 'bitcoincashtestnet'].includes(config.MEMPOOL.NETWORK);
+    this.baseSymbol = isBitcoinCash ? 'BCH' : 'BTC';
+    if (isBitcoinCash) {
+      this.currencies = ['USD', 'EUR'];
+    }
+    this.url = `https://api.coinbase.com/v2/prices/${this.baseSymbol}-{CURRENCY}/spot`;
+    this.urlHist = `https://api.exchange.coinbase.com/products/${this.baseSymbol}-{CURRENCY}/candles?granularity={GRANULARITY}`;
   }
 
   public async $fetchPrice(currency): Promise<number> {

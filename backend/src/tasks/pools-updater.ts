@@ -32,7 +32,8 @@ class PoolsUpdater {
 
   public async updatePoolsJson(): Promise<void> {
     if (['mainnet', 'testnet', 'signet', 'testnet4'].includes(config.MEMPOOL.NETWORK) === false ||
-      config.MEMPOOL.ENABLED === false
+      config.MEMPOOL.ENABLED === false ||
+      !this.poolsUrl || !this.treeUrl
     ) {
       return;
     }

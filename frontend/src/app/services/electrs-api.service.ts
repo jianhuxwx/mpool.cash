@@ -19,8 +19,8 @@ export class ElectrsApiService {
     private httpClient: HttpClient,
     private stateService: StateService,
   ) {
-    this.apiBaseUrl = ''; // use relative URL by default
-    if (!stateService.isBrowser) { // except when inside AU SSR process
+    this.apiBaseUrl = (this.stateService.env.API_BASE_URL || '').replace(/\/$/, '');
+    if (!stateService.isBrowser && !this.apiBaseUrl) { // except when inside AU SSR process
       this.apiBaseUrl = this.stateService.env.NGINX_PROTOCOL + '://' + this.stateService.env.NGINX_HOSTNAME + ':' + this.stateService.env.NGINX_PORT;
     }
     this.apiBasePath = ''; // assume mainnet by default
@@ -234,6 +234,14 @@ export class ElectrsApiService {
 
   getAddressesByPrefix$(prefix: string): Observable<string[]> {
     if (prefix.toLowerCase().indexOf('bc1') === 0) {
+      prefix = prefix.toLowerCase();
+    } else if (prefix.toLowerCase().startsWith('bitcoincash:')) {
+      prefix = prefix.toLowerCase();
+    } else if (/^[qpzry9x8gf2tvdw0s3jn54khce6mua7l]/i.test(prefix)) {
+      prefix = prefix.toLowerCase();
+    } else if (prefix.toLowerCase().startsWith('bchtest:')) {
+      prefix = prefix.toLowerCase();
+    } else if (prefix.toLowerCase().startsWith('bchreg:')) {
       prefix = prefix.toLowerCase();
     }
     return this.httpClient.get<string[]>(this.apiBaseUrl + this.apiBasePath + '/api/address-prefix/' + prefix);

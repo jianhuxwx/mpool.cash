@@ -7,6 +7,7 @@ import mempool from '../mempool';
 import { TransactionExtended } from '../../mempool.interfaces';
 import transactionUtils from '../transaction-utils';
 import { Common } from '../common';
+import { toCashAddress } from '../../utils/cashaddr';
 
 class BitcoinApi implements AbstractBitcoinApi {
   private rawMempoolCache: IBitcoinApi.RawMempool | null = null;
@@ -28,7 +29,7 @@ class BitcoinApi implements AbstractBitcoinApi {
       merkle_root: block.merkleroot,
       tx_count: block.nTx,
       size: block.size,
-      weight: block.weight,
+      weight: block.weight ?? (block.size * 4),
       previousblockhash: block.previousblockhash,
       mediantime: block.mediantime,
       stale: block.confirmations === -1,
@@ -284,12 +285,13 @@ class BitcoinApi implements AbstractBitcoinApi {
   }
 
   protected async $convertTransaction(transaction: IBitcoinApi.Transaction, addPrevout: boolean, lazyPrevouts = false, allowMissingPrevouts = false): Promise<IEsploraApi.Transaction> {
+    const txWeight = transaction.weight ?? (transaction.size * 4);
     let esploraTransaction: IEsploraApi.Transaction = {
       txid: transaction.txid,
       version: transaction.version,
       locktime: transaction.locktime,
       size: transaction.size,
-      weight: transaction.weight,
+      weight: txWeight,
       fee: 0,
       vin: [],
       vout: [],
@@ -297,11 +299,13 @@ class BitcoinApi implements AbstractBitcoinApi {
     };
 
     esploraTransaction.vout = transaction.vout.map((vout) => {
+      const rawAddress = vout.scriptPubKey && vout.scriptPubKey.address ? vout.scriptPubKey.address
+        : vout.scriptPubKey.addresses ? vout.scriptPubKey.addresses[0] : '';
+      const scriptpubkeyAddress = Common.isBitcoinCash() ? (toCashAddress(rawAddress) || rawAddress) : rawAddress;
       return {
         value: Math.round(vout.value * 100000000),
         scriptpubkey: vout.scriptPubKey.hex,
-        scriptpubkey_address: vout.scriptPubKey && vout.scriptPubKey.address ? vout.scriptPubKey.address
-          : vout.scriptPubKey.addresses ? vout.scriptPubKey.addresses[0] : '',
+        scriptpubkey_address: scriptpubkeyAddress,
         scriptpubkey_asm: vout.scriptPubKey.asm ? transactionUtils.convertScriptSigAsm(vout.scriptPubKey.hex) : '',
         scriptpubkey_type: this.translateScriptPubKeyType(vout.scriptPubKey.type),
       };
